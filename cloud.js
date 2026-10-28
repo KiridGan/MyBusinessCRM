@@ -1,0 +1,33 @@
+/* Supabase adapter. The browser uses only a publishable key and the user's JWT. */
+(() => {
+'use strict';
+const STATUSES=['Новая заявка','Согласован','В работе','Выполнен','Отменён'];
+const FIELDS=['client','phone','address','work','equipment','date','status','cost','expenses','comment'];
+const COLUMNS='id,created_at,user_id,client_name,phone,order_date,address,work_type,equipment,amount,expenses,status,comment';
+const UUID=/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+function valid(o){return o&&typeof o.id==='string'&&FIELDS.every(k=>['cost','expenses'].includes(k)?typeof o[k]==='number'&&Number.isFinite(o[k])&&o[k]>=0&&o[k]<=1e12:typeof o[k]==='string')&&!!o.client.trim()&&/^\d{4}-\d{2}-\d{2}$/.test(o.date)&&!Number.isNaN(Date.parse(o.date+'T00:00:00Z'))&&STATUSES.includes(o.status)}
+function toRow(o,userId){if(!valid(o)||!UUID.test(o.id)||!UUID.test(userId))throw Error('invalid-data');return {id:o.id,user_id:userId,client_name:o.client,phone:o.phone,order_date:o.date,address:o.address,work_type:o.work,equipment:o.equipment,amount:o.cost,expenses:o.expenses,status:o.status,comment:o.comment}}
+function fromRow(r){const o={id:r.id,client:r.client_name,phone:r.phone??'',date:r.order_date,address:r.address??'',work:r.work_type??'',equipment:r.equipment??'',cost:r.amount===null?NaN:Number(r.amount),expenses:r.expenses===null?NaN:Number(r.expenses),status:r.status,comment:r.comment??''};if(!UUID.test(o.id)||!valid(o))throw Error('schema-mismatch');return o}
+function same(a,b){return FIELDS.every(k=>a[k]===b[k])}
+function message(e){const code=String(e?.code||'');if(e?.message==='schema-mismatch')return 'Структура заказов в Supabase отличается от ожидаемой. Проверьте типы полей, суммы и значения статусов по инструкции docs/SUPABASE.md. Данные не изменены.';if(e?.message==='session-changed')return 'Аккаунт изменился. Откройте заказ заново.';if(e?.message==='invalid-data')return 'Проверьте поля заказа и тип идентификаторов: ожидается UUID.';if(['PGRST116','42501'].includes(code))return 'Заказ недоступен или изменение запрещено. Обновите список и проверьте RLS-политики для вашего пользователя.';if(['42P01','42703','PGRST204','PGRST205','22P02','23514'].includes(code))return 'Таблица orders, типы полей или статусы не соответствуют настройкам CRM. Проверьте docs/SUPABASE.md.';if(code==='23505')return 'Заказ с этим идентификатором уже существует. Обновите список; повторный заказ не создан.';if(e?.status===401||code==='PGRST301'||code==='refresh_token_not_found'||code==='refresh_token_already_used')return 'Сессия истекла. Войдите заново; несохранённые изменения не отправлены.';if(code==='invalid_credentials')return 'Неверный email или пароль.';if(code==='email_not_confirmed')return 'Email не подтверждён. Проверьте пользователя в Supabase Authentication.';if(e?.status===429)return 'Слишком много попыток. Подождите немного и повторите.';return 'Не удалось связаться с Supabase или выполнить запрос. Проверьте интернет, адрес проекта, Publishable key и RLS. Изменения не подтверждены; форму можно отправить повторно.'}
+function create(config){
+ const url=config?.supabaseUrl,key=config?.supabasePublishableKey;
+ if(!key)return {mode:'local'};
+ if(typeof key!=='string'||!/^sb_publishable_[A-Za-z0-9_-]+$/.test(key))throw Error('Используйте только Publishable key вида sb_publishable_… . Secret key, service_role и JWT-ключи в браузере запрещены.');
+ if(!/^https:\/\/[a-z0-9]+\.supabase\.co\/?$/.test(url||''))throw Error('Проверьте HTTPS-адрес проекта Supabase в config.js.');
+ if(!globalThis.supabase?.createClient)throw Error('Не удалось загрузить библиотеку Supabase. Проверьте наличие vendor/supabase.js на GitHub Pages.');
+ const client=supabase.createClient(url,key,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:false,storageKey:'MyBusinessCRM.auth.'+new URL(url).hostname}});
+ const table=()=>client.from('orders');
+ function check(error){if(error)throw error}
+ async function all(userId){const result=[];for(let offset=0;;offset+=500){const {data,error}=await table().select(COLUMNS).eq('user_id',userId).order('created_at',{ascending:false}).order('id').range(offset,offset+499);check(error);if(!Array.isArray(data))throw Error('schema-mismatch');for(const r of data){if(r.user_id!==userId)throw Error('schema-mismatch');result.push(fromRow(r))}if(data.length<500)return result}}
+ async function get(id,userId){const {data,error}=await table().select(COLUMNS).eq('id',id).eq('user_id',userId).maybeSingle();check(error);return data?fromRow(data):null}
+ async function save(o,userId,editing){const row=toRow(o,userId);const query=editing?table().update(row).eq('id',o.id).eq('user_id',userId):table().insert(row);const {data,error}=await query.select(COLUMNS).single();if(error?.code==='23505'&&!editing){const existing=await get(o.id,userId);if(existing&&same(existing,o))return existing}check(error);return fromRow(data)}
+ async function remove(id,userId){const {data,error}=await table().delete().eq('id',id).eq('user_id',userId).select('id');check(error);if(!data?.length)throw {code:'PGRST116'}}
+ async function migrationId(localId,userId){const bytes=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(JSON.stringify(['MyBusinessCRM.orders.v1',new URL(url).hostname,userId,localId])));const hex=Array.from(new Uint8Array(bytes).slice(0,16),b=>b.toString(16).padStart(2,'0')).join('');return hex.slice(0,8)+'-'+hex.slice(8,12)+'-8'+hex.slice(13,16)+'-a'+hex.slice(17,20)+'-'+hex.slice(20)}
+ async function importOne(localOrder,userId){const o={...localOrder,id:await migrationId(localOrder.id,userId)};const existing=await get(o.id,userId);if(existing)return {id:o.id,state:same(o,existing)?'existing':'different'};
+ // Never overwrite a row on conflict, even after a lost response or concurrent import.
+ const {error}=await table().upsert(toRow(o,userId),{onConflict:'id',ignoreDuplicates:true}).select('id');check(error);const verified=await get(o.id,userId);if(!verified)throw {code:'42501'};return {id:o.id,state:same(o,verified)?'saved':'different'}}
+ return {mode:'cloud',client,all,save,remove,importOne,migrationId};
+}
+globalThis.CRMCloud={create,toRow,fromRow,valid,same,message,STATUSES,FIELDS};
+})();

@@ -1,0 +1,9 @@
+{
+  "name": "mybusinesscrm",
+  "private": true,
+  "scripts": {
+    "check": "node --check cloud.js && node --check orders.js && node --check config.js",
+    "test": "node tests/browser.cjs"
+  },
+  "devDependencies": { "playwright": "1.58.2" }
+}
