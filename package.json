@@ -3,10 +3,13 @@
   "private": true,
   "scripts": {
     "check": "node --check cloud.js && node --check orders.js && node --check config.js && node --check equipment-core.js && node --check equipment.js",
-    "test": "node tests/equipment-core.cjs && node tests/equipment-db.cjs && node tests/browser.cjs && node tests/equipment-browser.cjs"
+    "test": "node tests/equipment-core.cjs && node tests/equipment-db.cjs && node tests/equipment-concurrency.cjs && node tests/browser.cjs && node tests/equipment-browser.cjs",
+    "test:concurrency": "node tests/equipment-concurrency.cjs"
   },
   "devDependencies": {
     "@electric-sql/pglite": "0.3.14",
+    "embedded-postgres": "18.4.0-beta.17",
+    "pg": "8.16.3",
     "playwright": "1.58.2"
   }
 }
