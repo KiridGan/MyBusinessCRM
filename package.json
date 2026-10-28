@@ -2,8 +2,11 @@
   "name": "mybusinesscrm",
   "private": true,
   "scripts": {
-    "check": "node --check cloud.js && node --check orders.js && node --check config.js",
-    "test": "node tests/browser.cjs"
+    "check": "node --check cloud.js && node --check orders.js && node --check config.js && node --check equipment-core.js && node --check equipment.js",
+    "test": "node tests/equipment-core.cjs && node tests/equipment-db.cjs && node tests/browser.cjs && node tests/equipment-browser.cjs"
   },
-  "devDependencies": { "playwright": "1.58.2" }
+  "devDependencies": {
+    "@electric-sql/pglite": "0.3.14",
+    "playwright": "1.58.2"
+  }
 }
