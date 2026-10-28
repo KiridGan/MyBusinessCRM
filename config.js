@@ -3,5 +3,5 @@
 // Пустой ключ сохраняет прежний локальный режим до завершения настройки.
 window.CRM_CONFIG = Object.freeze({
   supabaseUrl: 'https://vrbbhmwwelfpgvvffsap.supabase.co',
-  supabasePublishableKey: ''
+  supabasePublishableKey: 'sb_publishable_B2CTgWYClNSBrJ4lMWio6A_kCp9OoZ3'
 });
