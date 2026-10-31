@@ -1,6 +1,34 @@
 -- Additive migration: no orders columns/data/policies are removed or rewritten.
 -- Run once in Supabase SQL Editor as project owner. Entire script is atomic.
 begin;
+set local lock_timeout='5s';
+set local statement_timeout='120s';
+-- Inspect metadata only; never change orders or its policies automatically.
+do $preflight$
+declare id_att smallint;
+begin
+ if to_regclass('public.orders') is null then
+  raise exception 'Missing public.orders; compare the schema-only export before migrating' using errcode='42P01';
+ end if;
+ if not exists(select 1 from pg_class where oid='public.orders'::regclass and relkind='r' and relrowsecurity) then
+  raise exception 'orders must be an ordinary table with RLS enabled; no automatic policy changes are made' using errcode='55000';
+ end if;
+ if not exists(select 1 from pg_attribute where attrelid='public.orders'::regclass and attname='id' and atttypid='uuid'::regtype and not attisdropped)
+ or not exists(select 1 from pg_attribute where attrelid='public.orders'::regclass and attname='user_id' and atttypid='uuid'::regtype and not attisdropped)
+ or not exists(select 1 from pg_attribute where attrelid='public.orders'::regclass and attname='expenses' and atttypid='numeric'::regtype and attgenerated='' and not attisdropped) then
+  raise exception 'orders requires id/user_id uuid and writable numeric expenses; do not auto-convert existing data' using errcode='42804';
+ end if;
+ select attnum into id_att from pg_attribute where attrelid='public.orders'::regclass and attname='id' and not attisdropped;
+ if not exists(select 1 from pg_index where indrelid='public.orders'::regclass and indisunique and indisvalid and indimmediate and indnkeyatts=1 and indkey[0]=id_att and indpred is null and indexprs is null) then
+  raise exception 'orders.id must have a non-deferrable unique key' using errcode='55000';
+ end if;
+ if exists(select 1 from pg_roles where rolname in ('anon','authenticated') and (rolsuper or rolbypassrls)) then
+  raise exception 'Client roles must not be SUPERUSER or BYPASSRLS; review authorization separately' using errcode='55000';
+ end if;
+ if to_regprocedure('auth.uid()') is null then
+  raise exception 'Missing Supabase auth.uid(); stop rather than replacing authentication' using errcode='42883';
+ end if;
+end $preflight$;
 create unique index orders_equipment_owner_uidx on public.orders(id,user_id);
 create table public.equipment (
  id uuid primary key default gen_random_uuid(),
@@ -102,7 +130,7 @@ begin
  for oid in select distinct v from unnest(array[old_order,new_order]) as t(v) where v is not null order by v loop
   expected_owner:=case when oid=new_order then new.user_id else old.user_id end;
   select user_id,coalesce(expenses,0) into actual_owner,actual_budget
-   from public.orders where id=oid for update;
+   from public.orders where id=oid for no key update;
   if not found or actual_owner is distinct from expected_owner then
    raise exception 'Order is unavailable' using errcode='42501';
   end if;
@@ -120,20 +148,24 @@ begin
  if tg_op='DELETE' then return old; end if;
  return new;
 end $$;
-create trigger equipment_expenses_budget before insert or update or delete on public.equipment_expenses for each row execute function public.crm_equipment_check_expense();
+create trigger equipment_expenses_budget after insert or update or delete on public.equipment_expenses for each row execute function public.crm_equipment_check_expense();
 create function public.crm_equipment_check_order_budget() returns trigger language plpgsql security definer set search_path=pg_catalog,pg_temp as $$
+declare final_owner uuid; final_budget numeric;
 begin
  if current_setting('role',true) not in ('none','postgres','supabase_admin','service_role') and auth.uid() is distinct from new.user_id then
   raise exception 'Order owner is unavailable' using errcode='42501';
  end if;
- -- Upsert even when no ledger row is visible in this transaction's snapshot.
- -- A concurrent first expense therefore cannot slip past a header reduction.
+ -- Read the stored value after all BEFORE triggers and any earlier nested
+ -- AFTER updates, not an obsolete NEW value from an outer trigger event.
+ select user_id,coalesce(expenses,0) into final_owner,final_budget
+  from public.orders where id=new.id for no key update;
+ if not found then return new; end if;
  insert into crm_equipment_private.order_budgets as b(order_id,user_id,budget,allocated)
-  values(new.id,new.user_id,coalesce(new.expenses,0),0)
+  values(new.id,final_owner,final_budget,0)
   on conflict(order_id) do update set budget=excluded.budget;
  return new;
 end $$;
-create trigger equipment_order_budget before update of expenses on public.orders for each row execute function public.crm_equipment_check_order_budget();
+create trigger equipment_order_budget after update on public.orders for each row when (old.expenses is distinct from new.expenses) execute function public.crm_equipment_check_order_budget();
 -- Prevent interpreting old hour readings as kilometres (or vice versa).
 create function public.crm_equipment_check_meter_kind() returns trigger language plpgsql security invoker set search_path=public,pg_temp as $$
 begin

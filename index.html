@@ -44,7 +44,7 @@
 <label class="order-field">Статус<select name="status" required></select></label>
 <label class="order-field">Стоимость, ₽ *<input name="cost" type="number" min="0" max="1000000000000" step="0.01" inputmode="decimal" required></label>
 <label class="order-field">Базовые расходы, ₽ *<input name="expenses" type="number" min="0" max="1000000000000" step="0.01" inputmode="decimal" value="0" required></label>
-<div class="profit-preview full-width">Расчётная прибыль: <output id="profit-preview" for="order-form">0 ₽</output></div><p class="eq-hint full-width">Базовые расходы не включают дополнительных подрядчиков. Если сумма подрядчика уже внесена сюда, отметьте её в окне «Техника и подрядчики» как «Уже включён».</p>
+<div class="profit-preview full-width">Расчётная прибыль: <output id="profit-preview" for="order-form">0 ₽</output></div><p id="order-cost-state" class="eq-hint full-width" role="status" hidden></p><p class="eq-hint full-width">Базовые расходы не включают дополнительных подрядчиков. Если сумма подрядчика уже внесена сюда, отметьте её в окне «Техника и подрядчики» как «Уже включён».</p>
 <label class="order-field full-width">Комментарий<textarea name="comment" rows="3" maxlength="5000"></textarea></label>
 </div><p style="font-size:12px;margin-top:14px">* Обязательные поля</p><p id="form-error" class="order-error" role="alert"></p><div class="form-actions"><button type="button" class="secondary" id="cancel-order">Отмена</button><button type="submit" class="primary">Сохранить заказ</button></div></form></dialog>
 <section id="equipment-view" class="view" hidden aria-labelledby="equipment-title">

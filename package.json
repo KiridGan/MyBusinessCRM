@@ -3,8 +3,9 @@
   "private": true,
   "scripts": {
     "check": "node --check cloud.js && node --check orders.js && node --check config.js && node --check equipment-core.js && node --check equipment.js && node --check participation-core.js && node --check order-participation.js",
-    "test": "node tests/equipment-core.cjs && node tests/fleet-core.cjs && node tests/equipment-db.cjs && node tests/fleet-db.cjs && node tests/equipment-concurrency.cjs && node tests/browser.cjs && node tests/equipment-browser.cjs && node tests/participation-browser.cjs",
-    "test:concurrency": "node tests/equipment-concurrency.cjs"
+    "test": "node tests/equipment-core.cjs && node tests/fleet-core.cjs && node tests/equipment-db.cjs && node tests/fleet-db.cjs && node tests/equipment-concurrency.cjs && node tests/migration-security.cjs && node tests/browser.cjs && node tests/equipment-browser.cjs && node tests/participation-browser.cjs",
+    "test:concurrency": "node tests/equipment-concurrency.cjs",
+    "test:migration-security": "node tests/migration-security.cjs"
   },
   "devDependencies": {
     "@electric-sql/pglite": "0.3.14",
