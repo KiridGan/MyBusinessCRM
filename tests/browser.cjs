@@ -17,7 +17,7 @@ if(url.origin===PROJECT){requests.push({method:req.method(),url:url.href,headers
 if(url.pathname==='/auth/v1/token'){const body=req.postDataJSON();if(url.searchParams.get('grant_type')==='refresh_token'){refreshes++;return respond(session(body.refresh_token.endsWith(B)?B:A))}if(body.password!=='test-password')return respond({code:'invalid_credentials',error_code:'invalid_credentials',message:'Invalid credentials'},400);return respond(session(body.email.startsWith('other')?B:A))}
 const auth=req.headers().authorization||'';const owner=auth===`Bearer ${token(B)}`?B:A;
 if(url.pathname==='/auth/v1/user')return respond(user(owner));if(url.pathname==='/auth/v1/logout')return respond({});
-if(url.pathname==='/rest/v1/orders'){
+if(['/rest/v1/equipment','/rest/v1/equipment_order_links','/rest/v1/order_contractors'].includes(url.pathname)&&req.method()==='GET')return respond([]);if(url.pathname==='/rest/v1/orders'){
 let found=[...rows.values()].filter(r=>r.user_id===owner);const uid=url.searchParams.get('user_id');if(uid)found=found.filter(r=>r.user_id===uid.slice(3));const id=url.searchParams.get('id');if(id)found=found.filter(r=>r.id===id.slice(3));
 if(req.method()==='GET'){const single=(req.headers().accept||'').includes('object+json');const offset=Number(url.searchParams.get('offset')||0),limit=Number(url.searchParams.get('limit')||500);found=found.slice(offset,offset+limit);return respond(single?(found[0]||null):found)}
 if(deny)return respond({code:'42501',message:'RLS violation'},403);
