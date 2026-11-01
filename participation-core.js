@@ -8,6 +8,8 @@ function extraFor(orderId,rows){return rows.filter(r=>r.order_id===orderId&&r.ac
 function create(runtime){const client=runtime.store.client,base=CRMEquipmentCore.create(runtime.store);const check=r=>{if(r.error)throw r.error;return r.data};
 async function saveContractor(row,edit){let q=edit?client.from('order_contractors').update(row).eq('id',row.id).eq('user_id',row.user_id):client.from('order_contractors').insert(row);const result=await q.select('*').single();if(!edit&&result.error?.code==='23505'){const existing=check(await client.from('order_contractors').select('*').eq('id',row.id).eq('user_id',row.user_id).single());if(Object.keys(row).every(k=>['hours','hourly_rate','fixed_amount'].includes(k)?Number(existing[k])===Number(row[k]):existing[k]===row[k]))return existing}return check(result)}
 async function saveOwned(row){return check(await client.from('equipment_order_links').upsert(row,{onConflict:'order_id,equipment_id'}).select('*').single())}
-return {all:base.all,remove:base.remove,saveContractor,saveOwned};}
+const columns={equipment:'id,user_id,name,status,archived_at,hourly_rate',equipment_order_links:'order_id,equipment_id,user_id,work_hours,hourly_rate',order_contractors:'id,user_id,order_id,created_at,equipment_type,equipment_name,contractor_name,phone,pricing_mode,hours,hourly_rate,fixed_amount,amount,accounting_mode,comment'};
+async function all(table,owner){try{return await base.all(table,owner,columns[table]||'*')}catch(e){throw {code:e?.code,status:e?.status,resource:table}}}
+return {all,remove:base.remove,saveContractor,saveOwned};}
 globalThis.CRMParticipationCore={minor,amountCents,extraFor,create};
 })();

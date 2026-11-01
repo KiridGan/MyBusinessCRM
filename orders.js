@@ -9,6 +9,7 @@ let store,orders=[],editing=null,draftId=null,user=null,epoch=0,loading=false,bu
 let backupSnapshot=null;
 try {if(!globalThis.CRM_CONFIG)throw Error('Не найден config.js. Проверьте файлы проекта.');store=api.create(CRM_CONFIG)}catch(e){store={mode:'blocked'};$('storage-error').hidden=false;$('storage-error').textContent=e.message}
 const cloud=store.mode==='cloud';
+window.addEventListener('load',()=>{const status=document.getElementById('participation-status');if(status&&!globalThis.CRMParticipation?.initialized){status.textContent='Не удалось запустить модуль «Техника и подрядчики». Проверьте загрузку order-participation.js, participation-core.js и equipment-core.js; обновите страницу. Заказы можно сохранять отдельно.';status.classList.add('order-error')}});
 function publishSession(){globalThis.CRMRuntime={store,user,getOrders:()=>orders.slice(),renderOrders:()=>{renderOrders();controls();if(dialog.open)updateProfit()}};window.dispatchEvent(new CustomEvent('crm-auth',{detail:globalThis.CRMRuntime}))}
 publishSession();
 function error(text){$('storage-error').hidden=false;$('storage-error').textContent=text}

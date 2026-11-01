@@ -24,7 +24,7 @@
 <section id="orders-view" class="view" hidden aria-labelledby="orders-title">
 <div class="intro"><div><h1 id="orders-title" tabindex="-1">Заказы</h1><p>Заявки клиентов и работа вашей техники.</p></div><button class="primary" id="add-order">＋ Добавить заказ</button></div>
 <p class="storage-note"><span id="storage-description">Проверяем настройки хранения…</span></p>
-<p id="storage-error" class="order-error" role="alert" hidden></p><p id="order-message" class="order-message" role="status"></p>
+<p id="storage-error" class="order-error" role="alert" hidden></p><p id="order-message" class="order-message" role="status"></p><p id="participation-status" class="eq-hint" role="status">Техника и подрядчики добавляются после сохранения заказа — кнопкой в его карточке. Ожидаем загрузку модуля.</p><button type="button" id="participation-retry" class="secondary" hidden>Обновить технику и подрядчиков</button>
 <section id="auth-panel" class="order-item" hidden aria-labelledby="auth-title">
 <h2 id="auth-title">Вход в CRM</h2><p>Используйте email и пароль пользователя, созданного в Supabase.</p>
 <form id="login-form"><div class="order-form-grid" style="margin-top:16px"><label class="order-field">Email<input id="login-email" type="email" autocomplete="username" required maxlength="254"></label><label class="order-field">Пароль<input id="login-password" type="password" autocomplete="current-password" required></label></div><p id="auth-error" class="order-error" role="alert"></p><button class="primary" type="submit" style="margin-top:16px">Войти</button></form></section>
@@ -44,7 +44,7 @@
 <label class="order-field">Статус<select name="status" required></select></label>
 <label class="order-field">Стоимость, ₽ *<input name="cost" type="number" min="0" max="1000000000000" step="0.01" inputmode="decimal" required></label>
 <label class="order-field">Базовые расходы, ₽ *<input name="expenses" type="number" min="0" max="1000000000000" step="0.01" inputmode="decimal" value="0" required></label>
-<div class="profit-preview full-width">Расчётная прибыль: <output id="profit-preview" for="order-form">0 ₽</output></div><p id="order-cost-state" class="eq-hint full-width" role="status" hidden></p><p class="eq-hint full-width">Базовые расходы не включают дополнительных подрядчиков. Если сумма подрядчика уже внесена сюда, отметьте её в окне «Техника и подрядчики» как «Уже включён».</p>
+<div class="profit-preview full-width">Расчётная прибыль: <output id="profit-preview" for="order-form">0 ₽</output></div><p id="order-cost-state" class="eq-hint full-width" role="status" hidden></p><p class="eq-hint full-width">Сначала сохраните заказ. Затем в его карточке в списке нажмите «Техника и подрядчики». Если сумма подрядчика уже внесена в базовые расходы, отметьте её там как «Уже включён», чтобы не вычесть повторно.</p>
 <label class="order-field full-width">Комментарий<textarea name="comment" rows="3" maxlength="5000"></textarea></label>
 </div><p style="font-size:12px;margin-top:14px">* Обязательные поля</p><p id="form-error" class="order-error" role="alert"></p><div class="form-actions"><button type="button" class="secondary" id="cancel-order">Отмена</button><button type="submit" class="primary">Сохранить заказ</button></div></form></dialog>
 <section id="equipment-view" class="view" hidden aria-labelledby="equipment-title">
