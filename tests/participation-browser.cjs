@@ -15,6 +15,7 @@ async function setup({local=false,secret=false,seed=false}={}){const context=awa
 await context.route('**/*',async route=>{const req=route.request(),url=new URL(req.url());
 const respond=(body,status=200)=>route.fulfill({status,contentType:'application/json',headers:{'x-supabase-api-version':'2024-01-01','access-control-allow-origin':'*','access-control-allow-headers':'*','access-control-expose-headers':'X-Supabase-Api-Version'},body:JSON.stringify(body)});
 if(url.origin===PROJECT){requests.push({method:req.method(),url:url.href,headers:req.headers(),body:req.postDataJSON()});if(req.method()==='OPTIONS')return respond({});
+if(url.pathname.startsWith('/rest/v1/rpc/crm_meter')||url.pathname==='/rest/v1/rpc/crm_delete_order_with_meter')return respond({code:'PGRST202',message:'optional meter migration not installed'},404);
 if(url.pathname==='/auth/v1/token'){const body=req.postDataJSON();if(url.searchParams.get('grant_type')==='refresh_token'){refreshes++;return respond(session(body.refresh_token.endsWith(B)?B:A))}if(body.password!=='test-password')return respond({code:'invalid_credentials',error_code:'invalid_credentials',message:'Invalid credentials'},400);return respond(session(body.email.startsWith('other')?B:A))}
 const auth=req.headers().authorization||'';const owner=auth===`Bearer ${token(B)}`?B:A;
 if(url.pathname==='/auth/v1/user')return respond(user(owner));if(url.pathname==='/auth/v1/logout')return respond({});
